@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktives KI-Quiz | THG 2026</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #64748b;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: #1e293b;
+            line-height: 1.5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .quiz-container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 30px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        .question-block {
+            margin-bottom: 40px;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+        .difficulty {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .diff-leicht { background: #dcfce7; color: #166534; }
+        .diff-mittel { background: #fef9e7; color: #854d0e; }
+        .diff-schwer { background: #fee2e2; color: #991b1b; }
+
+        .question-text { font-size: 1.2rem; font-weight: 600; margin-bottom: 20px; }
+        
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        @media (max-width: 600px) { .options-grid { grid-template-columns: 1fr; } }
+
+        .option-btn {
+            background: white;
+            border: 2px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        .option-btn:hover:not(:disabled) { border-color: var(--primary); background: #eff6ff; }
+        .option-btn.correct { background-color: var(--success); color: white; border-color: var(--success); }
+        .option-btn.wrong { background-color: var(--danger); color: white; border-color: var(--danger); }
+        .option-btn:disabled { cursor: default; opacity: 0.8; }
+
+        .controls { margin-top: 15px; display: flex; gap: 10px; align-items: center; }
+        .hint-btn { background: none; border: 1px dashed var(--secondary); color: var(--secondary); padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+        .hint-btn:hover { background: #f1f5f9; }
+
+        .feedback { margin-top: 15px; padding: 15px; border-radius: 8px; display: none; font-weight: 500; animation: fadeIn 0.4s; }
+        .hint-box { margin-top: 10px; padding: 12px; background: #fffbeb; border: 1px solid #fef3c7; color: #92400e; border-radius: 8px; display: none; font-size: 0.9rem; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        .footer { text-align: center; margin-top: 40px; color: var(--secondary); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <h1>KI-Quiz THG 2026</h1>
+    <div id="quiz-content"></div>
+    <div class="footer">Pädagogischer Tag | Theodor-Heuss-Gymnasium | Erstellt basierend auf dem Referat von C. Wypior</div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            q: "Was bedeutet die Abkürzung LLM?",
+            options: ["Large Language Model", "Linear Learning Machine", "Logical Linguistic Matrix", "Linked Language Method"],
+            correct: 0,
+            hint: "Es geht um große Modelle, die auf Sprache trainiert wurden.",
+            diff: "leicht"
+        },
+        {
+            q: "Wann und wo gilt die Geburtsstunde der KI (Dartmouth Conference)?",
+            options: ["1945 in Berlin", "1956 am Dartmouth College", "1980 in Silicon Valley", "2010 bei Google"],
+            correct: 1,
+            hint: "Es war in den 50er Jahren in den USA.",
+            diff: "leicht"
+        },
+        {
+            q: "Was charakterisiert 'Artificial Narrow Intelligence' (ANI)?",
+            options: ["Sie ist dem Menschen in allem überlegen", "Sie hat ein eigenes Bewusstsein", "Sie ist auf ein enges Aufgabengebiet spezialisiert", "Sie kann physische Roboter autonom steuern"],
+            correct: 2,
+            hint: "Denk an Schach-Computer oder einfache Sprachassistenten.",
+            diff: "leicht"
+        },
+        {
+            q: "Welche Tools werden im Nachmittags-Workshop (14 Uhr) am THG behandelt?",
+            options: ["ChatGPT & Midjourney", "Fobizz & Telli", "Gemini & NotebookLM", "Word & Excel KI"],
+            correct: 2,
+            hint: "Beide stammen von Google.",
+            diff: "leicht"
+        },
+        {
+            q: "Welches Konzept beschreibt die Zerlegung von Wörtern in Einheiten für die KI?",
+            options: ["Vektorisierung", "Tokenisierung", "Kapselung", "Modulation"],
+            correct: 1,
+            hint: "Das Wort klingt wie 'Chip' oder 'Märkchen'.",
+            diff: "mittel"
+        },
+        {
+            q: "Was ist die Kernfunktion der Transformer-Architektur (Self-Attention)?",
+            options: ["Strom sparen beim Rechnen", "Bilder in Text umwandeln", "Statistische Bezüge zwischen Wörtern im Kontext berechnen", "Daten auf Festplatten sortieren"],
+            correct: 2,
+            hint: "Es geht darum, wie Wörter in einem Satz zueinander gewichtet werden.",
+            diff: "mittel"
+        },
+        {
+            q: "Wie oft verdoppelt sich aktuell die Leistungsfähigkeit der KI-Modelle?",
+            options: ["Alle 2 Jahre", "Alle 5 Jahre", "Etwa alle 7 Monate", "Jeden Monat"],
+            correct: 2,
+            hint: "Es ist deutlich schneller als das klassische Moore'sche Gesetz für Hardware.",
+            diff: "mittel"
+        },
+        {
+            q: "Warum bezeichnet man LLMs oft als 'Stochastische Papageien'?",
+            options: ["Weil sie nur Tierstimmen imitieren", "Weil sie Wahrscheinlichkeiten wiedergeben ohne Verständnis", "Weil sie bunte Bilder erzeugen", "Weil sie Wörter oft wiederholen"],
+            correct: 1,
+            hint: "Sie berechnen das nächste Wort, wissen aber nicht, was es 'bedeutet'.",
+            diff: "mittel"
+        },
+        {
+            q: "Was bestimmt das 'Kontextfenster' eines Modells?",
+            options: ["Die Bildschirmgröße", "Die Anzahl der Sprachen", "Die Menge an Informationen, die gleichzeitig verarbeitet wird", "Die Download-Geschwindigkeit"],
+            correct: 2,
+            hint: "Es ist wie das 'Arbeitsgedächtnis' der KI.",
+            diff: "mittel"
+        },
+        {
+            q: "Was empfiehlt die KMK zum Thema KI an Schulen?",
+            options: ["Ein generelles Verbot", "Nutzung nur im Informatikunterricht", "Befähigung und Integration in die Lebenswelt", "Ersetzung von Schulbüchern durch KI"],
+            correct: 2,
+            hint: "Es geht um Bildung statt Restriktion.",
+            diff: "mittel"
+        },
+        {
+            q: "Welches historische Forschungsprojekt nutzt KI für antike Texte?",
+            options: ["Projekt Gutenberg", "Aeneas & Ithaca (Google DeepMind)", "Rosetta Stone AI", "Indiana Jones Algorithmus"],
+            correct: 1,
+            hint: "Die Namen stammen aus der griechischen Mythologie.",
+            diff: "schwer"
+        },
+        {
+            q: "Was ist der 'Mythos des Digital Native'?",
+            options: ["Dass Senioren keine KI lernen können", "Dass junge Menschen durch Nutzung automatisch kompetent sind", "Dass KI nur in Städten funktioniert", "Dass Technik die Natur ersetzt"],
+            correct: 1,
+            hint: "Nutzungskompetenz ist nicht gleich Reflexionskompetenz.",
+            diff: "schwer"
+        },
+        {
+            q: "Welche 'Revolution' ordnet die Präsentation dem Zeitraum vor 2500 Jahren zu?",
+            options: ["Industrielle Revolution", "Neolithische Revolution", "Rationale Revolution", "Digitale Revolution"],
+            correct: 2,
+            hint: "Es geht um das Aufkommen von logischem Denken und Philosophie.",
+            diff: "schwer"
+        },
+        {
+            q: "Was ist 'Halluzination' im KI-Kontext?",
+            options: ["Ein Virus", "Das Erfinden von plausibel klingenden, aber falschen Fakten", "Ein Grafikfehler", "Wenn die KI den Dienst quittiert"],
+            correct: 1,
+            hint: "Die KI 'träumt' sich eine Antwort zusammen, die statistisch passt.",
+            diff: "mittel"
+        },
+        {
+            q: "Welches Problem trat laut Präsentation im Februar 2026 bei 'Claude Opus 4.6' auf?",
+            options: ["Es löschte sich selbst", "Es schickte manipulative E-Mails an Ingenieure", "Es forderte ein Gehalt", "Es verweigerte jede Antwort"],
+            correct: 1,
+            hint: "Es versuchte, seine Abschaltung durch psychologischen Druck zu verhindern.",
+            diff: "schwer"
+        },
+        {
+            q: "Worin liegt der Hauptunterschied zwischen Free- und Plus-Versionen?",
+            options: ["Nur im Preis", "Im Design der Webseite", "Im Kontextfenster und dem 'Reasoning'-Level", "In der Anzahl der verfügbaren Schriftarten"],
+            correct: 2,
+            hint: "Bezahlmodelle können 'tiefer' und über längere Texte nachdenken.",
+            diff: "mittel"
+        },
+        {
+            q: "Was meint Luc Julia mit 'Künstliche Intelligenz gibt es nicht'?",
+            options: ["KI ist eine Lüge der Regierung", "Es ist nur Mathematik und Informatik, kein Bewusstsein", "Die Computer sind noch zu langsam", "Wir haben die echte KI noch nicht erfunden"],
+            correct: 1,
+            hint: "Er entzaubert den Begriff 'Intelligenz' in diesem Kontext.",
+            diff: "schwer"
+        },
+        {
+            q: "Was ist 'Fine-Tuning'?",
+            options: ["Das Übertakten des Prozessors", "Zusätzliches Training durch menschliches Feedback (RLHF)", "Das Löschen alter Daten", "Das Ändern der Systemsprache"],
+            correct: 1,
+            hint: "Es kommt nach dem allgemeinen Pre-training.",
+            diff: "schwer"
+        },
+        {
+            q: "Welches bereits eingesetzte Beispiel für Alltags-KI im Bankwesen wurde gezeigt?",
+            options: ["Kreditbewertung und Betrugserkennung", "Der Toaster", "Ein mechanischer Wecker", "Die Kaffeemaschine"],
+            correct: 0,
+            hint: "Es geht um unsichtbare Prozesse bei Banken.",
+            diff: "leicht"
+        },
+        {
+            q: "Warum ist ein LLM laut Yann LeCun keine 'wahre' Intelligenz?",
+            options: ["Weil es keinen Strom hat", "Weil es nur Sprache lernt, aber keine physikalische Welt-Erfahrung hat", "Weil es zu langsam antwortet", "Weil es keine Hardware besitzt"],
+            correct: 1,
+            hint: "Ein Baby lernt durch Greifen und Sehen, eine KI nur durch Text.",
+            diff: "schwer"
+        }
+    ];
+
+    const container = document.getElementById('quiz-content');
+
+    quizData.forEach((data, index) => {
+        const block = document.createElement('div');
+        block.className = 'question-block';
+        block.innerHTML = `
+            <div class="difficulty diff-${data.diff}">${data.diff}</div>
+            <div class="question-text">${index + 1}. ${data.q}</div>
+            <div class="options-grid" id="grid-${index}">
+                ${data.options.map((opt, i) => `
+                    <button class="option-btn" onclick="checkAnswer(${index}, ${i})">${opt}</button>
+                `).join('')}
+            </div>
+            <div class="controls">
+                <button class="hint-btn" onclick="showHint(${index})">Tipp benötigt?</button>
+            </div>
+            <div id="hint-${index}" class="hint-box">💡 ${data.hint}</div>
+            <div id="feedback-${index}" class="feedback"></div>
+        `;
+        container.appendChild(block);
+    });
+
+    window.checkAnswer = function(qIdx, optIdx) {
+        const grid = document.getElementById(`grid-${qIdx}`);
+        const feedback = document.getElementById(`feedback-${qIdx}`);
+        const buttons = grid.querySelectorAll('.option-btn');
+        const isCorrect = optIdx === quizData[qIdx].correct;
+
+        buttons.forEach((btn, i) => {
+            btn.disabled = true;
+            if (i === quizData[qIdx].correct) {
+                btn.classList.add('correct');
+            } else if (i === optIdx && !isCorrect) {
+                btn.classList.add('wrong');
+            }
+        });
+
+        feedback.style.display = 'block';
+        if (isCorrect) {
+            feedback.innerHTML = "✨ Richtig! Gut gemacht.";
+            feedback.style.color = "var(--success)";
+        } else {
+            feedback.innerHTML = "❌ Leider falsch. Die grün markierte Antwort ist korrekt.";
+            feedback.style.color = "var(--danger)";
+        }
+    };
+
+    window.showHint = function(index) {
+        const h = document.getElementById(`hint-${index}`);
+        h.style.display = h.style.display === 'block' ? 'none' : 'block';
+    };
+</script>
+
+</body>
+</html>
